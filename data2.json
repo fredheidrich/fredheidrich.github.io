@@ -1,0 +1,16 @@
+{
+  "examples_1024": {
+    "layers_4": [
+      {
+        "at_step": 10000,
+        "depth": 8,
+        "performance": 0.9
+      },
+      {
+        "at_step": 10000,
+        "depth": 5,
+        "performance": 0.5
+      }
+    ]
+  }
+}

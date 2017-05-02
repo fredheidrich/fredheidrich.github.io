@@ -38,15 +38,14 @@ var svg = d3.select("svg"),
 d3.json("data2.json", function(error, data) {
   // console.log(d3.max(data, d => d.depth));
   if (error) throw error;
-  dataset = data.examples_1024.layers_1
-  console.log(dataset)
+  // console.log(data)
 
   var x = d3.scaleLinear()
-    .domain([d3.min(dataset, d => d.depth), d3.max(dataset, d => d.depth)])
+    .domain([d3.min(data, d => d.layers), d3.max(data, d => d.layers)])
     .range([0, width]);
 
   var y = d3.scaleLinear()
-    .domain([d3.min(dataset, d => d.performance), d3.max(dataset, d => d.performance)])
+    .domain([d3.min(data, d => d.accuracy), d3.max(data, d => d.accuracy)])
     .range([height, 0]);
 
   var z = d3.scaleOrdinal(d3.schemeCategory10);
@@ -74,8 +73,8 @@ d3.json("data2.json", function(error, data) {
 
   var line = d3.line()
       .curve(d3.curveMonotoneX)
-      .x(function(d) { return x(d.depth); })
-      .y(function(d) { return y(d.performance); });
+      .x(function(d) { return x(d.layers); })
+      .y(function(d) { return y(d.accuracy); });
 
   g.append("path")
     .attr("class", "line")
@@ -87,11 +86,11 @@ d3.json("data2.json", function(error, data) {
       .data(data)
     .enter().append("circle")
       .attr("class", "circles")
-      .attr("cx", d => x(d.depth))
-      .attr("cy", d => y(d.performance))
+      .attr("cx", d => x(d.layers))
+      .attr("cy", d => y(d.accuracy))
       .attr("r", r)
     .append("title")
-      .text(d => "depth: "+d.depth+", performance: "+d.performance);
+      .text(d => "depth: "+d.layers+", performance: "+d.accuracy);
 });
 
 

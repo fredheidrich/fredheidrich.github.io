@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <meta charset="UTF-8">
 <script type="text/javascript" src="libraries/d3.min.js"></script>
+<script type="text/javascript" src="libraries/masonry.pkgd.min.js"></script>
 <style>
 
-svg .circles {
+svg .circle {
   fill: teal;
   stroke: white;
   stroke-width: 4px;
 }
 
-.line {
+svg .line {
   fill: none;
   stroke-width: 1.5px;
+}
+
+.cells path {
+  fill: none;
+  stroke-width: 1.5px;
+  pointer-events: all;
+}
+
+.cells :hover circle {
+  fill: red;
 }
 
 .axis text {
@@ -19,79 +30,247 @@ svg .circles {
   font: 10px sans-serif;
 }
 
-</style>
+.grid-item {
+  width: 200px;
+}
+.grid-item--width2 {
+  width: 400px;
+}
 
-<select id="num_examples">
-  <option selected value="ex1024">1024</option>
-  <option value="ex16384">16384</option>
-</select>
-<svg width="600", height="400"></svg>
+</style>
+<div class=top>
+  <h1>Cellular Automata using CNN</h1>
+  <p>The following are some primary results from testing various layer and state sizes</p>
+</div>
+<div>
+  <h2>Network topology</h2>
+  <p>stub</p>
+</div>
+<div>
+  <h2>Experiment</h2>
+  <h3>Description of data</h3>
+  <p>The data is a randomised grid of size: 20x20x1. The data is divided 50/50 between positive
+  and negative examples.</p>
+  <p>A dataset of 1024 samples yielded poor results, and the network had trouble learning anything.
+    A dataset size of 16,384 worked but results were also sporadic. For these results a dataset of
+    <span class="bold">65,536 samples</span> was tested.</p>
+  <h3>Problem space</h3>
+  <p>A connected line from the bottom to the top. Can the network learn to recognise whether or not
+    the line is connected?</p>
+  <p>The line length varies randomly between 20 and 25</p>
+  <h3>Accuracy at state depth</h3>
+  <p>Recorded at step 10,000</p>
+  <select id="index">
+    <option selected value=1>layers: 1</option>
+    <option value=2>layers: 2</option>
+    <option value=4>layers: 4</option>
+    <option value=5>layers: 5</option>
+
+  </select><br>
+    <svg width="600", height="400"></svg>
+</div>
+
 <script>
+remove_duplicates = true;
+function filterJSON(json, key, value) {
+  var result = [];
+  json.forEach(function(val,idx,arr){
+    if(val[key] == value){
+      result.push(val)
+    }
+  })
+  return result;
+}
 
 var svg = d3.select("svg"),
-    margin = {top: 30, right: 30, bottom: 30, left: 30},
-    width = +svg.attr("width") - margin.left - margin.right,
-    height = +svg.attr("height") - margin.top - margin.bottom,
+    margin = {top: 40, right: 40, bottom: 40, left: 50},
+    width = svg.attr("width") - margin.left - margin.right,
+    height = svg.attr("height") - margin.top - margin.bottom,
     g = svg.append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("data2.json", function(error, data) {
-  // console.log(d3.max(data, d => d.depth));
+var formatValue = d3.format(",.2f");
+
+var x = d3.scaleLinear()
+  .rangeRound([0, width]);
+
+var y = d3.scaleLinear()
+  .range([height, 0]);
+
+
+var data;
+d3.json("data.json", function(error, json) {
   if (error) throw error;
-  // console.log(data)
+  // console.log(json)
 
-  var x = d3.scaleLinear()
-    .domain([d3.min(data, d => d.layers), d3.max(data, d => d.layers)])
-    .range([0, width]);
+  d3.select("#index")
+    .on("change", function() {
+      var sect = document.getElementById("index");
+			var section = sect.options[sect.selectedIndex].value;
 
-  var y = d3.scaleLinear()
-    .domain([d3.min(data, d => d.accuracy), d3.max(data, d => d.accuracy)])
-    .range([height, 0]);
+			data = filterJSON(json, "layers", section);
+
+      // console.log(data);
+      updateGraph(data);
+    });
+  data = filterJSON(json, "layers", 1);
+  // console.log(data);
+	updateGraph(data);
+});
+
+function updateGraph(data) {
+  x.domain(d3.extent(data, function(d) {return d.state_size}))
+  y.domain(d3.extent(data, function(d) {return d.accuracy}))
 
   var z = d3.scaleOrdinal(d3.schemeCategory10);
 
-  g.append("g")
+  var line = d3.line()
+      .curve(d3.curveMonotoneX)
+      .x(function(d) { return x(d.state_size); })
+      .y(function(d) { return y(d.accuracy); });
+
+  svg.selectAll(".line").remove();
+
+  // var states = {};
+  // data.forEach( function( item ) {
+  //     var state = states[item.state_size] = states[item.state_size] || {};
+  //     state[item.accuracy] = true;
+  // });
+  // console.log( JSON.stringify( states, null, 4 ) );
+  //
+  // var outputList = [];
+  // for( var state in states ) {
+  //     for( var accuracy in states[state] ) {
+  //         outputList.push({ state_size: state, accuracy: accuracy });
+  //     }
+  // }
+  //
+  // console.log(JSON.stringify( outputList, null, 4 ));
+
+  var entries = d3.nest()
+    .key(function(d) {return d.layers})
+    .entries(data.sort(function(a,b) {return a.state_size - b.state_size}));
+  console.log(entries)
+
+  var depth = g.selectAll(".line")
+    .data(entries)
+    // .data(entries, function(d) {return d.key});
+    .enter().append("path")
+    .attr("class", "line");
+
+  depth.transition()
+    .style("stroke", function(d,i) {return z(i)})
+    .duration(100)
+		.attr("d", function(d) { return line(d.values) });
+
+	depth.exit().remove();
+
+  svg.selectAll(".line").data(entries, function(d) { return d.key })
+     .enter()
+     .append("path")
+     .attr("class", "line")
+     .style("stroke", function(d,i) { return d.color = color(d.key); })
+     .attr("d", function(d) { return line(d.values); });
+
+  svg.selectAll(".line")
+    .data(entries, function(d){return d.key})
+    .exit().remove()
+
+
+  // var cell = g.append("g")
+  //       .attr("class", "cells")
+  //     .selectAll("g").data(d3.voronoi()
+  //         .extent([[-margin.left, -margin.top], [width + margin.right, height + margin.top]])
+  //         .x(function(d) { return x(d.state_size); })
+  //         .y(function(d) { return y(d.accuracy); })
+  //       .polygons(data)).enter().append("g");
+
+  // cell.append("path")
+  //   .attr("d", line(data.sort(function(a,b) {return a.state_size - b.state_size})))
+  //   .style("stroke", function(d,i) {return z(i)});
+  //
+  // cell.append("circle")
+  //   .attr("r", 4)
+  //   .attr("cx", function(d) { return x(d.data.state_size); })
+  //   .attr("cy", function(d) { return y(d.data.accuracy); });
+  //
+  // cell.append("title")
+  //   .text(function(d) { return d.data.state_size + "\n" + formatValue(d.data.accuracy); });
+  //
+  // g.append("path")
+  //   .attr("class", "line")
+  //   .attr("d", line(data.sort(function(a,b) {return a.state_size - b.state_size})))
+  //   .style("stroke", (d,i) => z(i));
+  //
+
+  svg.selectAll(".axis").remove();
+
+  var xAxis = g.append("g")
       .attr("class", "axis axis--x")
       .attr("transform", "translate(0," + height + ")")
       .call(d3.axisBottom(x))
-    .append("text")
+
+  xAxis.append("text")
       .attr("class", "axis-title")
       .attr("x", width)
       .attr("y", 25)
-      .text("depth");
+      .text("state depth");
 
-  g.append("g")
+  var yAxis = g.append("g")
       .attr("class", "axis axis--y")
       .call(d3.axisLeft(y))
-    .append("text")
+
+  yAxis.append("text")
       .attr("class", "axis-title")
-      .attr("transform", "translate(10,20)rotate(270)")
+      .attr("transform", "translate("+ -margin.left +", 0)rotate(270)")
       .attr("dy", ".71em")
       .style("text-anchor", "end")
-      .text("performance");
+      .text("accuracy");
 
-
-  var line = d3.line()
-      .curve(d3.curveMonotoneX)
-      .x(function(d) { return x(d.layers); })
-      .y(function(d) { return y(d.accuracy); });
-
-  g.append("path")
-    .attr("class", "line")
-    .attr("d", line(data))
-    .style("stroke", (d,i) => z(i));
+  svg.selectAll(".circle")
+    .remove();
 
   var r = 5;
-  g.selectAll("circle")
+  var circle = g.selectAll("circle")
       .data(data)
     .enter().append("circle")
-      .attr("class", "circles")
-      .attr("cx", d => x(d.layers))
+      .attr("class", "circle")
+      .attr("cx", d => x(d.state_size))
       .attr("cy", d => y(d.accuracy))
       .attr("r", r)
-    .append("title")
-      .text(d => "depth: "+d.layers+", performance: "+d.accuracy);
-});
 
+  circle.append("title")
+    .text(function(d) { return d.state_size + "\n" + formatValue(d.accuracy); });
 
+}
 </script>
+
+<h2>Activation snapshots</h2>
+<p>Images of each layer activation in an 8 layer network of state depth 2.</p>
+<h3>Layer (down) | Depth (right)</h3>
+<div class="grid">
+  <div class="grid-item">
+    <img src="img/s0_l0.png" alt="" width=80>
+    <img src="img/s1_l0.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l1.png" alt="" width=80>
+    <img src="img/s1_l1.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l2.png" alt="" width=80>
+    <img src="img/s1_l2.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l3.png" alt="" width=80>
+    <img src="img/s1_l3.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l4.png" alt="" width=80>
+    <img src="img/s1_l4.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l5.png" alt="" width=80>
+    <img src="img/s1_l5.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l6.png" alt="" width=80>
+    <img src="img/s1_l6.png" alt="" width=80></div>
+  <div class="grid-item">
+    <img src="img/s0_l7.png" alt="" width=80>
+    <img src="img/s1_l7.png" alt="" width=80></div>
+</div>

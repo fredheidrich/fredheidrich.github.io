@@ -10,12 +10,11 @@ layout: default
 
 
 ## Toolbox
-![Tensorflow](/assets/logo/tensorflow.png){:.logo}
-![Keras](/assets/logo/keras.png){:.logo}
+[![Tensorflow](/assets/logo/tensorflow.png){:.logo}](https://www.tensorflow.org){:.logo-item}
+[![Keras](/assets/logo/keras.png){:.logo}](https://keras.io){:.logo-item}
 
-![Python](/assets/logo/python.png){:.logo}
-![JavaScript](/assets/logo/javascript.png){:.logo}
-
+[![Python](/assets/logo/python.png){:.logo}](https://www.python.org){:.logo-item}
+[![JavaScript](/assets/logo/javascript.png){:.logo}](https://www.javascript.com){:.logo-item}
 
 
 # Education

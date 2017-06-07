@@ -1,0 +1,40 @@
+---
+---
+
+@import 'jekyll-theme-cayman';
+
+.page-header {
+    border-bottom-width: 1px;
+    border-bottom-color: #ebebeb;
+    border-bottom-style: solid;
+}
+
+.project-tagline {
+    color: #2a8add;
+}
+
+.logo {
+    padding-left: 40px;
+    padding-right: 40px;
+
+}
+
+.main-content h1 {
+    font-family: 'Montserrat', sans-serif;
+}
+
+.landing-row-group {
+    display: flex;
+}
+
+.landing-row-item {
+    flex-basis: calc((100% - 40px)/2);
+    flex-direction: column;
+    flex: 1 0;
+}
+
+body {
+    font-family: 'Source Serif Pro', serif;
+
+}
+
